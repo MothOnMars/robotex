@@ -13,6 +13,7 @@ Disallow: /my_shiny_metal_ass
 
 User-Agent: *
 Disallow: /login
+Disallow: /archive/ #old content
 Allow: /
 
 Disallow: /locked
@@ -63,6 +64,13 @@ END
       it 'returns false' do
         robotex = Robotex.new
         robotex.allowed?(SPEC_DOMAIN + 'locked').should be_false
+      end
+    end
+
+    context 'when a rule includes a comment' do
+      it 'returns false' do
+        robotex = Robotex.new
+        robotex.allowed?(SPEC_DOMAIN + 'archive/old').should be_false
       end
     end
   end
