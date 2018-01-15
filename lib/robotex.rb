@@ -31,7 +31,7 @@ class Robotex
         arr = line.split(":")
         key = arr.shift
         value = arr.join(":").strip
-        value.strip!
+        value.gsub!(/\s*#.+$/,'')
         case key.downcase
           when "user-agent"
             agent = to_regex(value)
