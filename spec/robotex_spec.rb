@@ -5,6 +5,9 @@ describe Robotex do
   before(:all) do
     FakeWeb.allow_net_connect = false
     robots = <<-END
+Sitemap: http://www.example.com/sitemap_1.xml
+Sitemap: http://www.example.com/sitemap_2.xml
+
 User-Agent: msnbot
 Crawl-Delay: 20
 
@@ -73,6 +76,7 @@ END
         robotex = Robotex.new
         robotex.delay(SPEC_DOMAIN).should be_nil 
       end
+    end
 
     context 'when Crawl-Delay is specified for the user-agent' do
       it 'returns the delay as a Fixnum' do
@@ -80,8 +84,13 @@ END
         robotex.delay(SPEC_DOMAIN).should == 20
       end
     end
-    end
   end
 
+  describe '#sitemaps' do
+    it 'returns an array of sitemaps' do
+      sitemaps = ['http://www.example.com/sitemap_1.xml','http://www.example.com/sitemap_2.xml']
+      robotex = Robotex.new
+      robotex.sitemaps(SPEC_DOMAIN).should == sitemaps
+    end
+  end
 end
-
