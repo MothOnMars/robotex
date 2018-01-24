@@ -1,25 +1,30 @@
 require 'spec_helper'
 
 describe Robotex do
+  let(:robots) do
+    <<~ROBOTS
+      User-Agent: msnbot
+      Crawl-Delay: 20
 
-  before(:all) do
+      User-Agent: bender
+      Disallow: /my_shiny_metal_ass
+
+      User-Agent: *
+      Disallow: /login
+      Allow: /
+
+      Disallow: /locked
+      Allow: /locked
+    ROBOTS
+  end
+
+  let(:response) do
+    { body: robots, content_type: 'text/plain', status: [200, "OK"] }
+  end
+
+  before do
     FakeWeb.allow_net_connect = false
-    robots = <<-END
-User-Agent: msnbot
-Crawl-Delay: 20
-
-User-Agent: bender
-Disallow: /my_shiny_metal_ass
-
-User-Agent: *
-Disallow: /login
-Allow: /
-
-Disallow: /locked
-Allow: /locked
-END
-    options = {:body => robots, :content_type => 'text/plain', :status => [200, "OK"]}
-    FakeWeb.register_uri(:get, SPEC_DOMAIN + 'robots.txt', options)
+    FakeWeb.register_uri(:get, SPEC_DOMAIN + 'robots.txt', response)
   end
 
   describe '#initialize' do
@@ -73,6 +78,7 @@ END
         robotex = Robotex.new
         robotex.delay(SPEC_DOMAIN).should be_nil 
       end
+    end
 
     context 'when Crawl-Delay is specified for the user-agent' do
       it 'returns the delay as a Fixnum' do
@@ -80,8 +86,29 @@ END
         robotex.delay(SPEC_DOMAIN).should == 20
       end
     end
-    end
   end
 
-end
+  describe '#sitemaps' do
+    let(:robots) do
+      <<~ROBOTS
+        Sitemap: http://www.example.com/sitemap_1.xml
+        Sitemap: http://www.example.com/sitemap_2.xml
+      ROBOTS
+    end
 
+    it 'returns an array of sitemaps' do
+      robotex = Robotex.new
+      robotex.sitemaps(SPEC_DOMAIN).should == %w[http://www.example.com/sitemap_1.xml
+                                                 http://www.example.com/sitemap_2.xml]
+    end
+
+    context 'when the sitemap url is relative' do
+      let(:robots) { 'Sitemap: /relative.xml' }
+
+      it 'returns the sitemap' do
+        robotex = Robotex.new
+        robotex.sitemaps(SPEC_DOMAIN).should == ['http://www.example.com/relative.xml']
+      end
+    end
+  end
+end
