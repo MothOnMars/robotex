@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Robotex do
   let(:robots) do
-    <<~END
+    <<~ROBOTS
       User-Agent: msnbot
       Crawl-Delay: 20
 
@@ -16,7 +16,7 @@ describe Robotex do
 
       Disallow: /locked
       Allow: /locked
-    END
+    ROBOTS
   end
 
   let(:response) do
@@ -102,6 +102,7 @@ describe Robotex do
         robotex = Robotex.new
         robotex.delay(SPEC_DOMAIN).should be_nil
       end
+    end
 
     context 'when Crawl-Delay is specified for the user-agent' do
       it 'returns the delay as a Fixnum' do
@@ -109,8 +110,29 @@ describe Robotex do
         robotex.delay(SPEC_DOMAIN).should == 20
       end
     end
-    end
   end
 
-end
+  describe '#sitemaps' do
+    let(:robots) do
+      <<~ROBOTS
+        Sitemap: http://www.example.com/sitemap_1.xml
+        Sitemap: http://www.example.com/sitemap_2.xml
+      ROBOTS
+    end
 
+    it 'returns an array of sitemaps' do
+      robotex = Robotex.new
+      robotex.sitemaps(SPEC_DOMAIN).should == %w[http://www.example.com/sitemap_1.xml
+                                                 http://www.example.com/sitemap_2.xml]
+    end
+
+    context 'when the sitemap url is relative' do
+      let(:robots) { 'Sitemap: /relative.xml' }
+
+      it 'returns the sitemap' do
+        robotex = Robotex.new
+        robotex.sitemaps(SPEC_DOMAIN).should == ['http://www.example.com/relative.xml']
+      end
+    end
+  end
+end
