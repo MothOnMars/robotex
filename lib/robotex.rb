@@ -91,6 +91,7 @@ class Robotex
     
     def to_regex(pattern)
       return /should-not-match-anything-123456789/ if pattern.strip.empty?
+      pattern.gsub!(/\s*#.+$/,'')
       pattern = Regexp.escape(pattern)
       pattern.gsub!(Regexp.escape("*"), ".*")
       Regexp.compile("^#{pattern}")
