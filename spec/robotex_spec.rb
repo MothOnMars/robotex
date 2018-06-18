@@ -1,28 +1,34 @@
 require 'spec_helper'
 
 describe Robotex do
+  let(:robots) do
+    <<~END
+      User-Agent: msnbot
+      Crawl-Delay: 20
 
-  before(:all) do
+      User-Agent: bender
+      Disallow: /my_shiny_metal_ass
+
+      User-Agent: *
+      Disallow: /login
+      Disallow: /archive/ #old content
+      Allow: /
+
+      Disallow: /locked
+      Allow: /locked
+    
+      Sitemap: http://www.example.com/sitemap_1.xml
+      Sitemap: http://www.example.com/sitemap_2.xml
+    END
+  end
+
+  let(:response) do
+    { body: robots, content_type: 'text/plain', status: [200, "OK"] }
+  end
+
+  before do
     FakeWeb.allow_net_connect = false
-    robots = <<-END
-Sitemap: http://www.example.com/sitemap_1.xml
-Sitemap: http://www.example.com/sitemap_2.xml
-
-User-Agent: msnbot
-Crawl-Delay: 20
-
-User-Agent: bender
-Disallow: /my_shiny_metal_ass
-
-User-Agent: *
-Disallow: /login
-Allow: /
-
-Disallow: /locked
-Allow: /locked
-END
-    options = {:body => robots, :content_type => 'text/plain', :status => [200, "OK"]}
-    FakeWeb.register_uri(:get, SPEC_DOMAIN + 'robots.txt', options)
+    FakeWeb.register_uri(:get, SPEC_DOMAIN + 'robots.txt', response)
   end
 
   describe '#initialize' do
@@ -68,13 +74,36 @@ END
         robotex.allowed?(SPEC_DOMAIN + 'locked').should be_false
       end
     end
+
+    context 'when a rule includes a comment' do
+      it 'returns false' do
+        robotex = Robotex.new
+        robotex.allowed?(SPEC_DOMAIN + 'archive/old').should be_false
+      end
+    end
+
+    context 'when the robots.txt url is redirected' do
+      let(:redirection) do
+        { status: [301], location: 'https://example.com/robots.txt' }
+      end
+
+      before do
+        FakeWeb.register_uri(:get, SPEC_DOMAIN + 'robots.txt', redirection)
+        FakeWeb.register_uri(:get, 'https://example.com/robots.txt', response)
+      end
+
+      it 'returns false' do
+        robotex = Robotex.new
+        robotex.allowed?(SPEC_DOMAIN + 'locked').should be_false
+      end
+    end
   end
 
   describe '#delay' do
     context 'when no Crawl-Delay is specified for the user-agent' do
       it 'returns nil' do
         robotex = Robotex.new
-        robotex.delay(SPEC_DOMAIN).should be_nil 
+        robotex.delay(SPEC_DOMAIN).should be_nil
       end
     end
 

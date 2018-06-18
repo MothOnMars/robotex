@@ -5,6 +5,7 @@ require 'rubygems'
 require 'open-uri'
 require 'uri'
 require 'timeout'
+require 'open_uri_redirections'
 
 class Robotex
   
@@ -19,7 +20,7 @@ class Robotex
 
     def initialize(uri, user_agent)
       io = Robotex.get_robots_txt(uri, user_agent)
-      
+
       if !io || io.content_type != "text/plain" || io.status != ["200", "OK"]
         io = StringIO.new("User-agent: *\nAllow: /\n")
       end
@@ -96,6 +97,7 @@ class Robotex
     
     def to_regex(pattern)
       return /should-not-match-anything-123456789/ if pattern.strip.empty?
+      pattern.gsub!(/\s*#.+$/,'')
       pattern = Regexp.escape(pattern)
       pattern.gsub!(Regexp.escape("*"), ".*")
       Regexp.compile("^#{pattern}")
@@ -105,8 +107,8 @@ class Robotex
   def self.get_robots_txt(uri, user_agent)
     begin
       Timeout::timeout(Robotex.timeout) do
-        io = URI.join(uri.to_s, "/robots.txt").open("User-Agent" => user_agent) rescue nil
-      end 
+        URI.join(uri.to_s, "/robots.txt").open("User-Agent" => user_agent, allow_redirections: :all) rescue nil
+      end
     rescue Timeout::Error
       STDERR.puts "robots.txt request timed out"
     end

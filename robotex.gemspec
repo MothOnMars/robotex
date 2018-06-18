@@ -10,6 +10,8 @@ spec = Gem::Specification.new do |s|
   s.rdoc_options << '-m' << 'README.rdoc' << '-t' << 'Robotex'
   s.extra_rdoc_files = ["README.rdoc"]
 
+  s.add_runtime_dependency "open_uri_redirections", "~> 0.2.1"
+
   s.add_development_dependency "rake", ">=0.9.2"
   s.add_development_dependency "rdoc", ">=3.12"
   s.add_development_dependency "rspec", ">=2.8.0"
