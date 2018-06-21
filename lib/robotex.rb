@@ -16,6 +16,8 @@ class Robotex
   
   class ParsedRobots
     
+    attr_reader :sitemaps
+
     def initialize(uri, user_agent)
       io = Robotex.get_robots_txt(uri, user_agent)
 
@@ -26,13 +28,14 @@ class Robotex
       @disallows = {}
       @allows = {}
       @delays = {}
+      @sitemaps = []
       agent = /.*/
       io.each do |line|
         next if line =~ /^\s*(#.*|$)/
         arr = line.split(":")
         key = arr.shift
         value = arr.join(":").strip
-        value.strip!
+        value.gsub!(/\s*#.+$/,'')
         case key.downcase
           when "user-agent"
             agent = to_regex(value)
@@ -44,6 +47,8 @@ class Robotex
             @disallows[agent] << to_regex(value)
           when "crawl-delay"
             @delays[agent] = value.to_i
+          when "sitemap"
+            @sitemaps << URI.join(uri, value).to_s
         end
       end
       
@@ -92,7 +97,6 @@ class Robotex
     
     def to_regex(pattern)
       return /should-not-match-anything-123456789/ if pattern.strip.empty?
-      pattern.gsub!(/\s*#.+$/,'')
       pattern = Regexp.escape(pattern)
       pattern.gsub!(Regexp.escape("*"), ".*")
       Regexp.compile("^#{pattern}")
@@ -150,5 +154,11 @@ class Robotex
     sleep delay - (Time.now - @last_accessed) if !!delay
     @last_accessed = Time.now
   end
-  
+
+  #
+  # Returns an array of the sitemap urls specified in robots.txt
+  #
+  def sitemaps(uri)
+    parse_host(uri).sitemaps
+  end
 end
